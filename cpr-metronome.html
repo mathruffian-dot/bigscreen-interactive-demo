@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CPR 按壓節拍器</title>
+<style>
+  :root{--bg:#fff7f7;--ink:#3b0d0d;--muted:#7a5a5a;--good:#15803d;--warn:#b45309;--bad:#b91c1c}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;font-size:28px}
+  header{padding:20px 32px}h1{margin:0;font-size:40px}.tag{font-size:22px;color:var(--muted)}
+  main{display:grid;grid-template-columns:minmax(280px,420px) 1fr;gap:36px;padding:0 32px 24px;align-items:center}
+  .heart{width:100%;aspect-ratio:1;border-radius:50%;background:#fee2e2;display:flex;align-items:center;justify-content:center;font-size:150px;transition:transform .08s}
+  .heart.beat{transform:scale(.86);background:#fecaca}
+  .panel{background:#fff;border:2px solid #fbd5d5;border-radius:22px;padding:22px 28px;margin-bottom:18px}
+  .bpm{font-size:72px;font-weight:900;line-height:1}
+  .zone{font-size:30px;font-weight:800;margin-top:8px}
+  input[type=range]{width:100%;height:60px;accent-color:#dc2626}
+  .scale{display:flex;justify-content:space-between;font-size:20px;color:var(--muted)}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  button{font:inherit;font-weight:800;cursor:pointer;border:none;border-radius:16px;min-height:72px;padding:0 28px}
+  .go{background:#dc2626;color:#fff}.sec{background:#374151;color:#fff}
+  .count{font-size:34px;font-weight:800}
+  #cycle{font-size:26px;color:var(--muted)}
+  footer{text-align:center;color:var(--muted);font-size:18px;padding-bottom:18px}
+  @media (max-width:800px){main{grid-template-columns:1fr}.heart{font-size:90px;max-width:260px;margin:auto}body{font-size:20px}h1{font-size:28px}.bpm{font-size:48px}}
+</style>
+</head>
+<body>
+<header><h1>❤️ CPR 胸外按壓節拍器</h1><div class="tag">看 × 滑桿｜全班跟著節拍做按壓手勢，比較太慢、剛好、太快的差別</div></header>
+<main>
+  <div class="heart" id="heart">🫀</div>
+  <div>
+    <div class="panel">
+      <div class="bpm"><span id="bpm">110</span> <span style="font-size:32px">次／分</span></div>
+      <div class="zone" id="zone"></div>
+      <input id="rate" type="range" min="60" max="160" step="5" value="110" aria-label="按壓速率">
+      <div class="scale"><span>60</span><span>100</span><span>120</span><span>160</span></div>
+    </div>
+    <div class="panel row" style="align-items:center;justify-content:space-between">
+      <div><div class="count">按壓 <span id="n">0</span> / 30</div><div id="cycle">第 1 循環</div></div>
+      <div class="row"><button class="go" id="toggle">▶ 開始</button><button class="sec" id="reset">🔄 歸零</button></div>
+    </div>
+  </div>
+</main>
+<footer>示範教材：成人 CPR 按壓速率 100–120 次／分、按壓與吹氣比 30:2，請依最新急救指引與課本確認。</footer>
+<script>
+const $=id=>document.getElementById(id);let ctx=null,timer=null,n=0,cyc=1,pause=false;
+function zone(b){if(b<100)return['🐢 太慢：灌流不足','var(--warn)'];if(b>120)return['🐇 太快：胸部回彈不完全','var(--bad)'];return['✅ 剛好：100–120 次／分','var(--good)']}
+function upd(){const b=+$('rate').value;$('bpm').textContent=b;const[z,c]=zone(b);$('zone').textContent=z;$('zone').style.color=c;if(timer){stop();go()}}
+function click(hi){if(!ctx)return;const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=hi?1320:880;g.gain.setValueAtTime(.35,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.08);o.connect(g).connect(ctx.destination);o.start();o.stop(ctx.currentTime+.09)}
+function tick(){if(pause)return;n++;$('n').textContent=n;click(n%10===0);const h=$('heart');h.classList.add('beat');setTimeout(()=>h.classList.remove('beat'),90);
+  if(n>=30){pause=true;$('cycle').textContent=`第 ${cyc} 循環完成 → 給予 2 次人工呼吸`;setTimeout(()=>{n=0;cyc++;$('n').textContent=0;$('cycle').textContent=`第 ${cyc} 循環`;pause=false},4000)}}
+function go(){ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();timer=setInterval(tick,60000/+$('rate').value);$('toggle').textContent='⏸ 暫停'}
+function stop(){clearInterval(timer);timer=null;$('toggle').textContent='▶ 開始'}
+$('toggle').onclick=()=>timer?stop():go();
+$('reset').onclick=()=>{stop();n=0;cyc=1;pause=false;$('n').textContent=0;$('cycle').textContent='第 1 循環'};
+$('rate').oninput=upd;upd();
+</script>
+</body>
+</html>

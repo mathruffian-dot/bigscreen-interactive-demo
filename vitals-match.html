@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>生命徵象配對</title>
+<style>
+  :root{--bg:#f6f8fb;--card:#fff;--ink:#14213d;--muted:#5c677d;--accent:#1d4ed8;--ok:#15803d;--bad:#b91c1c;--line:#cbd5e1}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;font-size:28px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 32px;flex-wrap:wrap}
+  h1{margin:0;font-size:40px}
+  .tag{font-size:22px;color:var(--muted)}
+  .bar{display:flex;gap:16px;align-items:center;font-size:26px}
+  button{font:inherit;cursor:pointer;border:none;border-radius:16px;min-height:64px;padding:0 24px}
+  .btn{background:var(--accent);color:#fff;font-weight:700}
+  #board{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:12vw;padding:8px 32px 32px}
+  .col{display:flex;flex-direction:column;gap:18px}
+  .item{background:var(--card);border:4px solid var(--line);border-radius:18px;min-height:84px;padding:14px 22px;display:flex;align-items:center;gap:14px;font-weight:700;text-align:left;transition:border-color .15s}
+  .item .emo{font-size:36px}
+  .item.sel{border-color:var(--accent);box-shadow:0 0 0 4px #bfdbfe}
+  .item.done{border-color:var(--ok);background:#ecfdf5;cursor:default}
+  .item.wrong{border-color:var(--bad);background:#fef2f2}
+  svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  #msg{text-align:center;font-size:30px;min-height:44px;font-weight:700}
+  footer{text-align:center;color:var(--muted);font-size:18px;padding:0 0 20px}
+  @media (max-width:700px){body{font-size:20px}h1{font-size:28px}#board{gap:8vw;padding:8px 12px}.item{min-height:64px;padding:10px}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>🩺 生命徵象 ↔ 成人正常值</h1><div class="tag">玩 × 配對｜先點左邊，再點右邊</div></div>
+  <div class="bar"><span>✅ <b id="score">0</b> / 5</span><span>⏱ <b id="time">0</b> 秒</span><button class="btn" id="reset">🔄 重新開始</button></div>
+</header>
+<div id="msg"></div>
+<div id="board">
+  <svg id="lines"></svg>
+  <div class="col" id="left"></div>
+  <div class="col" id="right"></div>
+</div>
+<footer>示範教材：數值為一般成人參考範圍，實際教學請依課本與臨床指引確認。</footer>
+<script>
+const DATA=[
+  {k:"體溫（口溫）",e:"🌡️",v:"約 36.5–37.5 °C"},
+  {k:"脈搏",e:"💓",v:"60–100 次／分"},
+  {k:"呼吸",e:"🫁",v:"12–20 次／分"},
+  {k:"血壓",e:"🩸",v:"收縮壓 <120、舒張壓 <80 mmHg"},
+  {k:"血氧飽和度 SpO₂",e:"🫀",v:"95–100 %"}
+];
+const L=document.getElementById('left'),R=document.getElementById('right'),svg=document.getElementById('lines'),board=document.getElementById('board');
+let sel=null,score=0,t0=0,timer=null,pairs=[];
+const shuffle=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);
+function mk(side,d,i){const b=document.createElement('button');b.className='item';b.dataset.i=i;b.dataset.side=side;
+  b.innerHTML=side==='L'?`<span class="emo">${d.e}</span><span>${d.k}</span>`:`<span>${d.v}</span>`;b.onclick=()=>pick(b);return b}
+function start(){L.innerHTML=R.innerHTML='';svg.innerHTML='';sel=null;score=0;pairs=[];
+  document.getElementById('score').textContent=0;document.getElementById('msg').textContent='';
+  shuffle(DATA.map((d,i)=>[d,i])).forEach(([d,i])=>L.appendChild(mk('L',d,i)));
+  shuffle(DATA.map((d,i)=>[d,i])).forEach(([d,i])=>R.appendChild(mk('R',d,i)));
+  clearInterval(timer);t0=Date.now();timer=setInterval(()=>document.getElementById('time').textContent=Math.floor((Date.now()-t0)/1000),250)}
+function pick(b){if(b.classList.contains('done'))return;
+  if(!sel){sel=b;b.classList.add('sel');return}
+  if(sel===b){b.classList.remove('sel');sel=null;return}
+  if(sel.dataset.side===b.dataset.side){sel.classList.remove('sel');sel=b;b.classList.add('sel');return}
+  const a=sel;sel=null;a.classList.remove('sel');
+  if(a.dataset.i===b.dataset.i){[a,b].forEach(x=>x.classList.add('done'));pairs.push([a,b]);draw();score++;
+    document.getElementById('score').textContent=score;say('答對了！👍','var(--ok)');
+    if(score===DATA.length){clearInterval(timer);say(`🎉 全部完成！用時 ${document.getElementById('time').textContent} 秒`,'var(--ok)')}}
+  else{[a,b].forEach(x=>x.classList.add('wrong'));say('再想想 🤔','var(--bad)');setTimeout(()=>[a,b].forEach(x=>x.classList.remove('wrong')),600)}}
+function draw(){const br=board.getBoundingClientRect();svg.innerHTML=pairs.map(([a,b])=>{const l=a.dataset.side==='L'?a:b,r=l===a?b:a;
+  const p=l.getBoundingClientRect(),q=r.getBoundingClientRect();
+  return `<line x1="${p.right-br.left}" y1="${p.top+p.height/2-br.top}" x2="${q.left-br.left}" y2="${q.top+q.height/2-br.top}" stroke="#15803d" stroke-width="6" stroke-linecap="round"/>`}).join('')}
+function say(t,c){const m=document.getElementById('msg');m.textContent=t;m.style.color=c}
+window.addEventListener('resize',draw);document.getElementById('reset').onclick=start;start();
+</script>
+</body>
+</html>

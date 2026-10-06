@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>色相環配色滑桿</title>
+<style>
+  :root{--bg:#faf7fb;--ink:#2a1f33;--muted:#6b6275}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;font-size:28px}
+  header{padding:20px 32px}h1{margin:0;font-size:40px}.tag{font-size:22px;color:var(--muted)}
+  main{display:grid;grid-template-columns:minmax(300px,440px) 1fr;gap:32px;padding:0 32px 24px;align-items:start}
+  svg{width:100%;height:auto}
+  .ctrl{background:#fff;border-radius:20px;padding:20px 26px;border:2px solid #e9e1ef;margin-bottom:20px}
+  label{display:block;font-weight:800;margin-bottom:10px}
+  input[type=range]{width:100%;height:56px;accent-color:#7c3aed}
+  .modes{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .modes button{font:inherit;min-height:72px;border-radius:16px;border:3px solid #e9e1ef;background:#fff;cursor:pointer;font-weight:800}
+  .modes button.on{border-color:#7c3aed;background:#f5f3ff}
+  .sw{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px}
+  .chip{flex:1 1 120px;min-height:120px;border-radius:18px;display:flex;align-items:flex-end;padding:10px;font-size:20px;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+  #tip{font-size:26px;line-height:1.5}
+  footer{text-align:center;color:var(--muted);font-size:18px;padding-bottom:18px}
+  @media (max-width:800px){main{grid-template-columns:1fr}body{font-size:20px}h1{font-size:28px}}
+</style>
+</head>
+<body>
+<header><h1>🎨 色相環配色：拉一拉就懂</h1><div class="tag">看 × 滑桿｜化妝品應用科：眼影、腮紅、服裝配色的原理示範</div></header>
+<main>
+  <div><svg id="wheel" viewBox="-110 -110 220 220" aria-label="色相環"></svg></div>
+  <div>
+    <div class="ctrl"><label>主色色相：<span id="hv">0</span>°</label><input id="hue" type="range" min="0" max="359" value="20"></div>
+    <div class="ctrl"><label>配色方式</label>
+      <div class="modes">
+        <button data-m="comp" class="on">互補色（180°）</button>
+        <button data-m="ana">類似色（±30°）</button>
+        <button data-m="tri">三角配色（±120°）</button>
+        <button data-m="split">分裂互補（180°±30°）</button>
+      </div></div>
+    <div class="ctrl"><label>配色結果</label><div class="sw" id="sw"></div></div>
+    <div class="ctrl" id="tip"></div>
+  </div>
+</main>
+<footer>示範教材：以 HSL 色相環示意，與印刷或彩妝色號可能有差異。</footer>
+<script>
+const MODES={comp:[0,180],ana:[0,-30,30],tri:[0,120,240],split:[0,150,210]};
+const TIPS={comp:"互補色對比最強：主色與對面的顏色搭配，例如紫色眼影可以襯托出琥珀色的眼睛。用在重點，面積不宜各半。",
+ ana:"類似色最柔和：相鄰的顏色漸層，例如橘、珊瑚、粉色的眼影漸層，適合日常妝。",
+ tri:"三角配色活潑：三色等距，適合舞台妝或創意彩妝，建議一主兩輔。",
+ split:"分裂互補兼顧對比與協調：比互補色溫和，適合想要亮點又不要太衝突的造型。"};
+let mode='comp';const $=id=>document.getElementById(id);
+const hsl=h=>`hsl(${((h%360)+360)%360} 75% 55%)`;
+function wheel(){let s='';for(let h=0;h<360;h+=6){const a=(h-90)*Math.PI/180,b=(h+6-90)*Math.PI/180;
+  s+=`<path d="M${100*Math.cos(a)} ${100*Math.sin(a)} A100 100 0 0 1 ${100*Math.cos(b)} ${100*Math.sin(b)} L${60*Math.cos(b)} ${60*Math.sin(b)} A60 60 0 0 0 ${60*Math.cos(a)} ${60*Math.sin(a)}Z" fill="${hsl(h)}"/>`}
+  return s}
+const base=wheel();
+function draw(){const h=+$('hue').value;$('hv').textContent=h;const hs=MODES[mode].map(d=>(h+d+360)%360);
+  let marks=hs.map((x,k)=>{const a=(x-90)*Math.PI/180;return `<line x1="0" y1="0" x2="${80*Math.cos(a)}" y2="${80*Math.sin(a)}" stroke="#2a1f33" stroke-width="${k?2:3}" stroke-dasharray="${k?'4 3':''}"/><circle cx="${80*Math.cos(a)}" cy="${80*Math.sin(a)}" r="${k?11:14}" fill="${hsl(x)}" stroke="#fff" stroke-width="4"/>`}).join('');
+  $('wheel').innerHTML=base+`<circle r="56" fill="#fff"/><circle r="44" fill="${hsl(h)}"/>`+marks;
+  $('sw').innerHTML=hs.map((x,k)=>`<div class="chip" style="background:${hsl(x)}">${k?'配色':'主色'} ${x}°</div>`).join('');
+  $('tip').textContent='💡 '+TIPS[mode]}
+document.querySelectorAll('.modes button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.modes button').forEach(x=>x.classList.remove('on'));b.classList.add('on');mode=b.dataset.m;draw()});
+$('hue').oninput=draw;draw();
+</script>
+</body>
+</html>

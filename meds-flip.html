@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>給藥三讀五對翻牌</title>
+<style>
+  :root{--bg:#f3f6fb;--ink:#13233f;--muted:#5b6475;--back:#2563eb;--ok:#16a34a}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;font-size:28px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 32px;flex-wrap:wrap}
+  h1{margin:0;font-size:40px}.tag{font-size:22px;color:var(--muted)}
+  .bar{display:flex;gap:18px;align-items:center}
+  button{font:inherit;cursor:pointer;border:none;border-radius:16px;min-height:64px;padding:0 22px}
+  .btn{background:#1f2937;color:#fff;font-weight:700}
+  #grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding:0 32px 24px}
+  .card{position:relative;min-height:150px;border-radius:20px;perspective:900px;background:none;padding:0}
+  .in{position:absolute;inset:0;transition:transform .45s;transform-style:preserve-3d}
+  .card.open .in,.card.done .in{transform:rotateY(180deg)}
+  .f,.b{position:absolute;inset:0;border-radius:20px;display:flex;align-items:center;justify-content:center;text-align:center;padding:12px;backface-visibility:hidden;font-weight:800}
+  .f{background:var(--back);color:#fff;font-size:56px}
+  .b{background:#fff;border:4px solid #c7d2fe;transform:rotateY(180deg);font-size:28px;line-height:1.35;flex-direction:column;gap:6px}
+  .b small{font-size:20px;color:var(--muted);font-weight:600}
+  .card.done .b{border-color:var(--ok);background:#f0fdf4}
+  #msg{text-align:center;font-weight:800;font-size:30px;min-height:46px}
+  footer{text-align:center;color:var(--muted);font-size:18px;padding-bottom:18px}
+  @media (max-width:700px){body{font-size:18px}h1{font-size:26px}#grid{grid-template-columns:repeat(3,1fr);padding:0 10px;gap:10px}.card{min-height:110px}.b{font-size:18px}.f{font-size:36px}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>💊 給藥「三讀五對」翻牌記憶</h1><div class="tag">玩 × 點選｜翻兩張，找出「名稱」和「說明」成對的牌</div></div>
+  <div class="bar"><span>🃏 <b id="pairs">0</b>/8</span><span>👆 <b id="moves">0</b> 步</span><button class="btn" id="reset">🔄 重新洗牌</button></div>
+</header>
+<div id="msg"></div>
+<div id="grid"></div>
+<footer>示範教材：各校教科書對「三讀」時機的說法略有不同，請依授課版本修改內容。</footer>
+<script>
+const PAIRS=[
+ ["一讀","從藥櫃取出藥物時"],
+ ["二讀","從容器倒出（取出）藥物時"],
+ ["三讀","將藥物放回藥櫃時"],
+ ["對的病人","核對床號、姓名、手圈"],
+ ["對的藥物","藥名與醫囑相符"],
+ ["對的劑量","核對劑量與單位"],
+ ["對的途徑","口服、注射、外用…"],
+ ["對的時間","依醫囑時間給藥"]
+];
+let first=null,lock=false,moves=0,got=0;
+const $=id=>document.getElementById(id);
+function start(){const cards=[];PAIRS.forEach((p,i)=>{cards.push({i,txt:p[0],kind:'名稱'});cards.push({i,txt:p[1],kind:'說明'})});
+  cards.sort(()=>Math.random()-.5);$('grid').innerHTML='';first=null;lock=false;moves=0;got=0;$('moves').textContent=0;$('pairs').textContent=0;$('msg').textContent='';
+  cards.forEach(c=>{const b=document.createElement('button');b.className='card';b.dataset.i=c.i;
+    b.innerHTML=`<div class="in"><div class="f">💊</div><div class="b"><small>${c.kind}</small>${c.txt}</div></div>`;b.onclick=()=>flip(b);$('grid').appendChild(b)})}
+function flip(b){if(lock||b.classList.contains('open')||b.classList.contains('done'))return;b.classList.add('open');
+  if(!first){first=b;return}
+  moves++;$('moves').textContent=moves;
+  if(first.dataset.i===b.dataset.i){[first,b].forEach(x=>{x.classList.remove('open');x.classList.add('done')});first=null;got++;$('pairs').textContent=got;
+    say(got===PAIRS.length?`🎉 完成！共 ${moves} 步`:'✅ 配對成功！','#16a34a')}
+  else{lock=true;say('🤔 不是一對，記住位置！','#b91c1c');const a=first;first=null;setTimeout(()=>{a.classList.remove('open');b.classList.remove('open');lock=false},1100)}}
+function say(t,c){$('msg').textContent=t;$('msg').style.color=c}
+$('reset').onclick=start;start();
+</script>
+</body>
+</html>
